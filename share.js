@@ -200,15 +200,26 @@ const shareCard = (() => {
   }
 
   // The link carries the score to beat, so whoever opens it starts with the challenge.
+  function challengeUrl() {
+    return `${location.origin}${location.pathname}?beat=${result.score}`;
+  }
+
+  // The link sits on a line of its own: messaging apps turn a bare address on its own
+  // line into a tappable link most reliably.
   function challengeText() {
-    const url = `${location.origin}${location.pathname}?beat=${result.score}`;
-    return `I scored ${result.score} on Whack-a-Zuzu (${result.rank}). Bet you can't beat me! Play here: ${url}`;
+    return `I scored ${result.score} on Whack-a-Zuzu (${result.rank}). Bet you can't beat me!\n${challengeUrl()}`;
   }
 
   async function open() {
     if (!result) return;
     await pending;
-    message.textContent = challengeText();
+    const [words, url] = challengeText().split("\n");
+    const link = document.createElement("a");
+    link.href = url;
+    link.textContent = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    message.replaceChildren(words, document.createElement("br"), link);
     if (file) preview.src = URL.createObjectURL(file);
     preview.parentElement.hidden = !file;
     saveBtn.hidden = !file;
@@ -223,7 +234,7 @@ const shareCard = (() => {
 
   copyBtn.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText(message.textContent);
+      await navigator.clipboard.writeText(challengeText());
       flash(copyBtn, "Copied!");
     } catch {
       // No clipboard access: highlight the message so it can be copied by hand.
@@ -236,7 +247,7 @@ const shareCard = (() => {
   // picture is attached. Some (Windows' share window among them) drop the text too,
   // which is why Copy message sits beside this.
   sendBtn.addEventListener("click", async () => {
-    const text = message.textContent;
+    const text = challengeText();
     const withPicture = file && navigator.canShare && navigator.canShare({ files: [file] });
     try {
       await navigator.share(withPicture ? { files: [file], text } : { text });

@@ -803,6 +803,10 @@ h1 {
   user-select: text;
 }
 
+.share-message a {
+  color: var(--blue);
+}
+
 .pill-btn {
   padding: 9px 6px;
   border: 2px solid #000;
