@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Only this site's own files, the animation library and the fonts may load, and the
+       page may not send data anywhere. data: and blob: images are the player's photo. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Whack-a-Zuzu</title>
+  <meta name="description" content="A quick 60-second whack-a-mole game starring Zuzu the robot. Build combos, grab the gold one and dodge the bombs.">
+  <meta property="og:title" content="Whack-a-Zuzu">
+  <meta property="og:description" content="Bonk Zuzu the robot for 60 seconds. Build combos, grab the gold one, dodge the bombs, and play with your own face.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#f9ebdb">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;700&family=Poppins:wght@600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game">
+    <header class="hud">
+      <h1>Whack-a-Zuzu</h1>
+      <button class="icon-btn face-btn" id="face-btn" type="button" aria-label="Play with your own face" title="Play with your own face">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9 10v.5M15 10v.5M8.5 14.5a4.5 4.5 0 0 0 7 0"/>
+        </svg>
+      </button>
+      <button class="icon-btn mute" id="mute" type="button" aria-label="Mute sound" aria-pressed="false">
+        <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
+          <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
+          <path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <dl class="stats">
+        <div class="stat">
+          <dt>Score</dt>
+          <dd id="score">0</dd>
+        </div>
+        <div class="stat">
+          <dt>Time</dt>
+          <dd id="time">60</dd>
+        </div>
+        <div class="stat">
+          <dt>Best</dt>
+          <dd id="best">0</dd>
+        </div>
+      </dl>
+    </header>
+
+    <div class="board-wrap" id="board-wrap">
+      <div class="board" id="board"></div>
+      <div class="flash" id="flash" aria-hidden="true"></div>
+      <div class="fx" id="fx" aria-hidden="true"></div>
+
+      <div class="combo" id="combo" aria-hidden="true">
+        <strong id="combo-mult">x2</strong>
+        <span>combo</span>
+      </div>
+      <div class="countdown" id="countdown" aria-hidden="true"></div>
+
+      <div class="overlay" id="overlay">
+        <h2 id="overlay-title">Ready?</h2>
+        <p id="overlay-text">Bonk Zuzu to score and build combos. Gold is worth 5, the clock adds 3 seconds, and bombs cost you 3. Tap the smiley to play with your own face.</p>
+        <div class="results" id="results" hidden>
+          <p class="final"><strong id="final-score">0</strong> points</p>
+          <p class="rank" id="rank"></p>
+          <dl class="tally">
+            <div><dt>Hits</dt><dd id="tally-hits">0</dd></div>
+            <div><dt>Accuracy</dt><dd id="tally-accuracy">0%</dd></div>
+            <div><dt>Streak</dt><dd id="tally-streak">0</dd></div>
+            <div><dt>Bombs</dt><dd id="tally-bombs">0</dd></div>
+          </dl>
+        </div>
+        <div class="overlay-actions">
+          <button class="play" id="play" type="button">Play</button>
+          <button class="pill-btn" id="share" type="button" hidden>Share</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <dialog class="sheet" id="face-dialog" aria-labelledby="face-title">
+    <h2 id="face-title">Play with your own face</h2>
+    <p>Drag to line the face up in the helmet. Your photo never leaves this device.</p>
+    <div class="sheet-art">
+      <span class="zuzu">
+        <span class="ear left"></span>
+        <span class="ear right"></span>
+        <span class="antenna"></span>
+        <img class="head" src="assets/zuzu/head.svg" alt="" draggable="false">
+        <img class="visor" src="assets/zuzu/face.svg" alt="" draggable="false">
+        <canvas class="face" id="face-canvas" width="370" height="228"></canvas>
+      </span>
+    </div>
+    <label class="face-zoom">
+      <span>Zoom</span>
+      <input type="range" id="face-zoom" min="1" max="4" step="0.01" value="1.5" disabled>
+    </label>
+    <div class="sheet-actions">
+      <button class="pill-btn" id="face-choose" type="button">Choose a photo</button>
+      <button class="pill-btn primary" id="face-save" type="button" disabled>Use this face</button>
+      <button class="pill-btn" id="face-reset" type="button" hidden>Back to Zuzu</button>
+      <button class="pill-btn" id="face-cancel" type="button">Cancel</button>
+    </div>
+    <input type="file" id="face-file" accept="image/*" hidden>
+  </dialog>
+
+  <dialog class="sheet" id="share-dialog" aria-labelledby="share-title">
+    <h2 id="share-title">Challenge a friend</h2>
+    <div class="sheet-art"><img id="share-preview" alt="Your score card" draggable="false"></div>
+    <p class="share-message" id="share-message"></p>
+    <div class="sheet-actions">
+      <button class="pill-btn primary" id="share-copy" type="button">Copy message</button>
+      <button class="pill-btn" id="share-send" type="button">Share</button>
+      <button class="pill-btn" id="share-save" type="button">Save picture</button>
+      <button class="pill-btn" id="share-close" type="button">Close</button>
+    </div>
+  </dialog>
+
+  <div class="mallet" id="mallet" aria-hidden="true">
+    <div class="mallet-art">
+      <span class="mallet-handle"></span>
+      <span class="mallet-head"></span>
+    </div>
+  </div>
+
+  <template id="hole-template">
+    <button class="hole" type="button">
+      <span class="zuzu">
+        <span class="ear left"></span>
+        <span class="ear right"></span>
+        <span class="antenna"></span>
+        <img class="head" src="assets/zuzu/head.svg" alt="" draggable="false">
+        <img class="visor" src="assets/zuzu/face.svg" alt="" draggable="false">
+        <span class="face"></span>
+        <span class="eyes"><img src="assets/zuzu/eyes.svg" alt="" draggable="false"></span>
+        <span class="dial"><i></i><i></i></span>
+      </span>
+      <span class="bomb">
+        <span class="bomb-fuse"></span>
+        <span class="bomb-spark"></span>
+        <span class="bomb-cap"></span>
+        <span class="bomb-body"></span>
+      </span>
+    </button>
+  </template>
+
+  <!-- The integrity hash makes the browser refuse this file if the CDN ever serves
+       anything other than the published GSAP 3.12.5. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous"></script>
+  <script src="sound.js"></script>
+  <script src="share.js"></script>
+  <script src="game.js"></script>
+  <script src="face.js"></script>
+</body>
+</html>
